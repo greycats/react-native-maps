@@ -2,6 +2,7 @@ package com.airbnb.android.react.maps;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.drawable.Animatable;
 import android.net.Uri;
@@ -236,6 +237,14 @@ public class AirMapMarker extends AirMapFeature {
             logoHolder.setController(controller);
         } else {
             iconBitmapDescriptor = getBitmapDescriptorByName(uri);
+
+            // try to fix iconBitmap java.lang.NullPointerException  https://github.com/airbnb/react-native-maps/issues/907
+            if (iconBitmapDescriptor != null) {
+                if (iconBitmap == null) {
+                    iconBitmap = BitmapFactory.decodeResource(getResources(), getDrawableResourceByName(uri));
+                }
+            }
+
             update();
         }
     }
