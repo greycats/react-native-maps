@@ -5,26 +5,21 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.drawable.Animatable;
-import android.net.Uri;
+import android.util.Log;
 import android.view.View;
 import android.widget.LinearLayout;
 
 import com.facebook.common.references.CloseableReference;
 import com.facebook.datasource.DataSource;
-import com.facebook.drawee.backends.pipeline.Fresco;
 import com.facebook.drawee.controller.BaseControllerListener;
 import com.facebook.drawee.controller.ControllerListener;
 import com.facebook.drawee.drawable.ScalingUtils;
 import com.facebook.drawee.generic.GenericDraweeHierarchy;
 import com.facebook.drawee.generic.GenericDraweeHierarchyBuilder;
-import com.facebook.drawee.interfaces.DraweeController;
 import com.facebook.drawee.view.DraweeHolder;
-import com.facebook.imagepipeline.core.ImagePipeline;
 import com.facebook.imagepipeline.image.CloseableImage;
 import com.facebook.imagepipeline.image.CloseableStaticBitmap;
 import com.facebook.imagepipeline.image.ImageInfo;
-import com.facebook.imagepipeline.request.ImageRequest;
-import com.facebook.imagepipeline.request.ImageRequestBuilder;
 import com.facebook.react.bridge.ReadableMap;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.BitmapDescriptor;
@@ -37,6 +32,7 @@ import javax.annotation.Nullable;
 
 public class AirMapMarker extends AirMapFeature {
 
+    private static final String TAG = "AirMapMarker";
     private MarkerOptions markerOptions;
     private Marker marker;
     private int width;
@@ -70,6 +66,8 @@ public class AirMapMarker extends AirMapFeature {
     private boolean calloutAnchorIsSet;
 
     private boolean hasCustomMarkerView = false;
+
+    private String mUri;
 
     private final DraweeHolder<?> logoHolder;
     private DataSource<CloseableReference<CloseableImage>> dataSource;
@@ -218,23 +216,26 @@ public class AirMapMarker extends AirMapFeature {
     }
 
     public void setImage(String uri) {
+        Log.e(TAG, "setImage: " +uri);
         if (uri == null) {
             iconBitmapDescriptor = null;
             update();
         } else if (uri.startsWith("http://") || uri.startsWith("https://") ||
                 uri.startsWith("file://")) {
-            ImageRequest imageRequest = ImageRequestBuilder
-                    .newBuilderWithSource(Uri.parse(uri))
-                    .build();
-
-            ImagePipeline imagePipeline = Fresco.getImagePipeline();
-            dataSource = imagePipeline.fetchDecodedImage(imageRequest, this);
-            DraweeController controller = Fresco.newDraweeControllerBuilder()
-                    .setImageRequest(imageRequest)
-                    .setControllerListener(mLogoControllerListener)
-                    .setOldController(logoHolder.getController())
-                    .build();
-            logoHolder.setController(controller);
+            this.mUri = uri;
+//            ImageRequest imageRequest = ImageRequestBuilder
+//                    .newBuilderWithSource(Uri.parse(uri))
+//                    .build();
+//
+//            ImagePipeline imagePipeline = Fresco.getImagePipeline();
+//            dataSource = imagePipeline.fetchDecodedImage(imageRequest, this);
+//            DraweeController controller = Fresco.newDraweeControllerBuilder()
+//                    .setImageRequest(imageRequest)
+//                    .setControllerListener(mLogoControllerListener)
+//                    .setOldController(logoHolder.getController())
+//                    .build();
+//            logoHolder.setController(controller);
+            update();
         } else {
             iconBitmapDescriptor = getBitmapDescriptorByName(uri);
 
@@ -317,7 +318,7 @@ public class AirMapMarker extends AirMapFeature {
         options.draggable(draggable);
         options.zIndex(zIndex);
         options.alpha(opacity);
-        options.icon(getIcon());
+        options.icon(BitmapDescriptorFactory.fromResource(R.mipmap.transparent_marker));
         return options;
     }
 
@@ -326,7 +327,15 @@ public class AirMapMarker extends AirMapFeature {
             return;
         }
 
-        marker.setIcon(getIcon());
+        if (iconBitmap != null) {
+            marker.setIcon(getIcon());
+        } else {
+            Log.d(TAG, "setMarkerIcon: " + this.mUri);
+            if (this.mUri != null) {
+                MarkerUtil.setMarkerIcon(context, this.mUri, marker);
+            }
+        }
+
 
         if (anchorIsSet) {
             marker.setAnchor(anchorX, anchorY);
